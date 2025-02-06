@@ -1,4 +1,5 @@
 const AIHandler = require("./APIHandler");
+const promptHelper = require("./helpers/prompt-helper");
 
 class WebRanger {
   AIClient;
@@ -19,12 +20,15 @@ class WebRanger {
         "The model you have initializd with is invalid please try again!"
       );
     } else {
+      console.log("User is valid proceed with action!");
       this.handlePrompt(prompt);
     }
   }
 
   async handlePrompt(prompt) {
-    console.log(prompt);
+    const URL_Extrcted = await this.AIClient.extractPromptURL(
+      `${promptHelper.extractURL}: ${prompt}`
+    );
   }
 }
 

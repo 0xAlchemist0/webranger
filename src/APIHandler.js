@@ -1,5 +1,5 @@
 const OpenAi = require("openai");
-
+const validatior = require("./validators/validator");
 class AIHandler {
   baseURL = "https://openrouter.ai/api/v1";
   client;
@@ -15,7 +15,6 @@ class AIHandler {
 
   //here we validate if the model the user initialized webrange rwith is valid
   async verifyModel() {
-    console.log("Here ", this.api_key);
     try {
       const test_prompt = await this.client.chat.completions.create({
         model: this.model,
@@ -31,7 +30,6 @@ class AIHandler {
           },
         ],
       });
-      console.log(test_prompt.choices[0].message);
       return true;
     } catch (error) {
       return false;
@@ -39,11 +37,39 @@ class AIHandler {
   }
 
   //here we extract the url from the prompt so that we can move over to the webscraper handler
-  async extractPromptURL() {
-    return null;
+  async extractPromptURL(prompt) {
+    const extractedURL = await this.callAI(prompt);
+    const isURLValid = validatior.validateURL(extractedURL);
+    console.log("is valid?: ", isURLValid);
+
+    if (isURLValid) return extractedURL;
+    else throw Error("No url or the URL provided is invalid");
   }
 
-  async processPrompt(prompt) {}
+  async callAI(prompt) {
+    console.log(prompt);
+    try {
+      const request = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      });
+      console.log(request);
+      return request;
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
 }
 
 module.exports = AIHandler;
