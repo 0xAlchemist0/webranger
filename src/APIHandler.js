@@ -103,4 +103,13 @@ class AIHandler {
   }
 }
 
+//The models parameter
+//for the models parameter you can pass in a list of models to try if one model does not work
+// The models parameter lets you automatically try other models if the primary model’s providers are down, rate-limited, or refuse to reply due to content moderation required by all providers.
+
+// {
+//   "models": ["anthropic/claude-3.5-sonnet", "gryphe/mythomax-l2-13b"],
+//   ... // Other params
+// }
+
 module.exports = AIHandler;
