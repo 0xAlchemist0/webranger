@@ -1,8 +1,13 @@
 const WebRanger = require("./src/WebRanger");
 const WebScrapeHandler = require("./src/WebScrapeHandler");
+const readline = require("readline").createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
 //intiializes the class
 const client = new WebRanger(
-  "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"
+  "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"
 );
 
 const webscraper_client = new WebScrapeHandler(
@@ -18,8 +23,15 @@ async function test() {
 }
 
 //the call to prompt the ai to webscrape a website
-client.providePrompt(
-  "Get me the last 10 influencer transactions from here https://kolscan.io/leaderboard"
-);
 
 //test key will get deleted soon: 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
+test_run();
+function test_run() {
+  console.log("Welcome to webranger");
+  readline.question("Enter Prompt: ", (prompt) => {
+    client.providePrompt(prompt);
+
+    readline.close();
+  });
+}
+//"Get me the top 10 traders from the leaderboard also get there solana wallet address from https://kolscan.io/leaderboard"

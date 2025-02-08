@@ -18,31 +18,47 @@ class WebRanger {
   async providePrompt(prompt) {
     const isVerified = await this.AIClient.verifyModel();
     if (!isVerified) {
-      throw Error(
-        "The model you have initializd with is invalid please try again!"
-      );
+      throw Error("Rate limit possibly reached");
     } else {
       console.log("User is valid proceed with action!");
+
       await this.handlePrompt(prompt);
     }
   }
 
   async handlePrompt(prompt) {
-    const URL_Extrcted = await this.AIClient.callAI(
+    const URL_Extrcted = await this.AIClient.provideGeminiPrompt(
       promptHelper.extractURLPrompt(prompt)
     );
     this.webscrapingClient.setURL(URL_Extrcted);
-    const markdown = await this.webscrapingClient.convertToMarkdown();
-    console.log("URL: ", markdown);
-    await this.analyzeMarkdown(prompt, markdown);
+    //before we analyze the markdown we have to find a way to get all elements and get all elements
+    const initialHTMLContent = await this.webscrapingClient.getHTMLContent(
+      URL_Extrcted
+    );
+    console.log(initialHTMLContent);
+    const extraPages = this.webscrapingClient.extractHrefs(
+      initialHTMLContent,
+      URL_Extrcted
+    );
+    console.log(extraPages);
+    //uncomment below when done adding getting other page route contents
+    // const markdown = await this.webscrapingClient.convertToMarkdown();
+    // await this.analyzeMarkdown(prompt, markdown);
   }
 
-  async analyzeMarkdown(propmpt, markdown) {
-    const isPromptFufilled = await this.AIClient.callAI(
-      promptHelper.validateMarkdownPrompt(propmpt, markdown)
+  async analyzeMarkdown(prompt, markdown) {
+    console.log(markdown);
+    const checkPromptFufilled = await this.AIClient.provideGeminiPrompt(
+      promptHelper.validateMarkdownPrompt(prompt, markdown)
     );
-    const parsedBoolean = parsers.parseBoolean(isPromptFufilled);
-    console.log(parsedBoolean);
+    const isPromptFufilled = parsers.parseBoolean(checkPromptFufilled);
+    if (isPromptFufilled) {
+      const finalizedAnswer = await this.AIClient.provideGeminiPrompt(
+        promptHelper.convertToJSONPrompt(prompt, markdown)
+      );
+      finalizedAnswer.replace("```json", "").replace("```", "").trim();
+      console.log(finalizedAnswer);
+    } else this.webscrapingClient.navigatePages();
   }
 }
 

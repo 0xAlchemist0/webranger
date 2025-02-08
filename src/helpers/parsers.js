@@ -1,11 +1,6 @@
 function parseBoolean(value) {
-  const structuredValue = String(value).toLowerCase();
-  console.log(value);
-  if (structuredValue === "True") {
-    return true;
-  } else if (structuredValue === "False") {
-    return false;
-  }
+  const structuredValue = String(value);
+  return JSON.parse(value);
 }
 
 module.exports = { parseBoolean };

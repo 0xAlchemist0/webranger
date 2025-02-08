@@ -2,11 +2,12 @@ const OpenAi = require("openai");
 const axios = require("axios");
 const validatior = require("./validators/validator");
 const freeModels = require("./free-models");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 class AIHandler {
   baseURL = "https://openrouter.ai/api/v1";
   client;
   constructor(api_key) {
-    console.log(api_key);
     this.api_key = api_key;
     this.client = new OpenAi({
       baseURL: this.baseURL,
@@ -17,11 +18,52 @@ class AIHandler {
 
   //here we validate if the model the user initialized webrange rwith is valid
   async verifyModel() {
-    const result = await this.callAI("say hello if you are working");
+    //change to call ai back fucntion when doen using gemini for now
+    const result = await this.provideGroqPrompt("say hello if you are working");
 
     if (result !== null) return true;
 
     return false;
+  }
+  //gemini api: AIzaSyC11O6Irb85-0B-6rd6LZoeo4JFltzpYDs
+  //adding a few llm providers for easier access and usuability
+  //groq: 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
+  async provideGroqPrompt(prompt) {
+    const groq = new Groq({
+      apiKey: "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",
+    });
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        try {
+          const answer = await groq.chat.completions.create({
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            model: "llama-3.3-70b-versatile",
+          });
+          resolve(answer);
+        } catch (error) {
+          console.log(error);
+        }
+      }, "5 seconds");
+    });
+  }
+
+  async provideGeminiPrompt(prompt) {
+    try {
+      const genAI = new GoogleGenerativeAI(
+        "AIzaSyC11O6Irb85-0B-6rd6LZoeo4JFltzpYDs"
+      );
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const answer = await model.generateContent(prompt);
+
+      return answer.response.text() || null;
+    } catch (error) {
+      return null;
+    }
   }
 
   //here we extract the url from the prompt so that we can move over to the webscraper handler
@@ -59,8 +101,7 @@ class AIHandler {
           const answer = await response.json();
           return resolve(answer.choices[0].message.content || null);
         } catch (error) {
-          console.log(error, prompt);
-
+          console.log("Error");
           return resolve(null);
         }
       }, "5 seconds");

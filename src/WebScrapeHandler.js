@@ -1,13 +1,16 @@
 const axios = require("axios");
 const AIHandler = require("./APIHandler");
-const https = require("https");
 const promptHelper = require("./helpers/prompt-helper");
-
+const { HttpsProxyAgent } = require("https-proxy-agent");
+const availableProxies = require("./helpers/proxies-available");
+const cheerio = require("cheerio");
+const puppeteer = require("puppeteer");
 class WebScrapeHandler {
-  jina_endpoint = "https://r.jina.ai/";
+  proxyUsed;
+  proxyAgent;
   proxy = "http://31.220.15.234:80";
   options = {
-    hostname: "r.jina.ai",
+    hostname: "https://r.jina.ai/",
     path: "",
     headers: {
       Authorization:
@@ -20,6 +23,13 @@ class WebScrapeHandler {
     this.api_key = api_key;
     this.AIClient = new AIHandler(this.api_key);
     this.AIClient.verifyModel();
+    this.setSessionProxy();
+  }
+
+  setSessionProxy() {
+    const randomIndex = Math.random() * (3 - 0) + 0;
+    this.proxyUsed = availableProxies[randomIndex.toFixed()];
+    console.log(this.proxyUsed);
   }
 
   setURL(URL) {
@@ -27,19 +37,27 @@ class WebScrapeHandler {
   }
 
   async convertToMarkdown() {
-    this.options.path = `${this.jina_endpoint}/${this.target_URL}`;
-    console.log("target", this.target_URL);
+    console.log("random: ", Number(Math.random() * (3 - 0) + 0).toFixed());
+    console.log("proxy:", this.proxyUsed);
+    console.log(
+      "URL FOUND: ",
+      this.target_URL,
+      " JINA API: ",
+      this.options.hostname
+    );
+    this.options.path = `${this.options.hostname}${this.target_URL}`;
     //promise on resolve returns the data we need bst way to perform this action
     //aios a bit tricky
     try {
       const response = await axios.get(this.options.path, {
         headers: this.options.headers,
       });
+      console.trace(response.data);
       this.markdown_content = response.data; // Store the fetched content
       return response.data; // Return the response data
     } catch (error) {
       console.error("Error fetching markdown:", error);
-      throw error; // Ensure errors are properly propagated
+      // Ensure errors are properly propagated
     }
 
     // markdown alows us to process elements easier with less tokens being used
@@ -47,13 +65,46 @@ class WebScrapeHandler {
   }
   //here we validate if the markdown provided from the page fufills the user promopt
   //if it does not we ove on to another function to try to get the markdown of other paths on the website
-  async validateInformation() {
-    console.log(this.markdown_content);
-    //this should return true or false if markdown has enough data to fufill a users prompt
-    const isPromptFufilled = await this.AIClient.callAI(
-      promptHelper.validateMarkdown +
-        "Get me the top ten traders from https://kolscan.io/ in json format"
+  async getPageContent(foundHrefs) {
+    console.log(foundHrefs);
+  }
+
+  //extract all possible connected links in order to navigate and find more info
+  //only extract the right routes not ones in other pages that dont belong to the domain
+  async extractHrefs(HTMLContent, URL) {
+    const linksFound = [];
+    const $ = cheerio.load(HTMLContent);
+    $("a").each((index, element) => {
+      const currentHref = $(element).attr("href");
+      const fufillsPurpose = this.compareURL(URL, currentHref);
+      if (fufillsPurpose) linksFound.push(currentHref);
+    });
+    return linksFound;
+  }
+
+  compareURL(URL, href) {
+    if (href.includes(URL) || !href.includes("https:")) {
+      return true;
+    }
+    return false;
+  }
+
+  async getHTMLContent(URL) {
+    console.log(URL);
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     );
+
+    await page.setViewport({ width: 1080, height: 1024 });
+    await page.goto(URL);
+
+    // Wait for content to load
+
+    // Extract page content
+    const content = await page.content();
+    return content;
   }
 }
 
