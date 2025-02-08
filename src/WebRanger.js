@@ -1,12 +1,14 @@
 const AIHandler = require("./APIHandler");
 const promptHelper = require("./helpers/prompt-helper");
-
+const WebScrapeHandler = require("./WebScrapeHandler");
+const parsers = require("./helpers/parsers");
 class WebRanger {
   AIClient;
-  constructor(api_key, model) {
+  webscrapingClient;
+  constructor(api_key) {
     this.api_key = api_key;
-    this.model = model;
-    this.AIClient = new AIHandler(this.api_key, this.model);
+    this.AIClient = new AIHandler(this.api_key);
+    this.webscrapingClient = new WebScrapeHandler(this.api_key);
   }
 
   verifyLLMParams() {
@@ -21,14 +23,26 @@ class WebRanger {
       );
     } else {
       console.log("User is valid proceed with action!");
-      this.handlePrompt(prompt);
+      await this.handlePrompt(prompt);
     }
   }
 
   async handlePrompt(prompt) {
-    const URL_Extrcted = await this.AIClient.extractPromptURL(
-      `${promptHelper.extractURL}: ${prompt}`
+    const URL_Extrcted = await this.AIClient.callAI(
+      promptHelper.extractURLPrompt(prompt)
     );
+    this.webscrapingClient.setURL(URL_Extrcted);
+    const markdown = await this.webscrapingClient.convertToMarkdown();
+    console.log("URL: ", markdown);
+    await this.analyzeMarkdown(prompt, markdown);
+  }
+
+  async analyzeMarkdown(propmpt, markdown) {
+    const isPromptFufilled = await this.AIClient.callAI(
+      promptHelper.validateMarkdownPrompt(propmpt, markdown)
+    );
+    const parsedBoolean = parsers.parseBoolean(isPromptFufilled);
+    console.log(parsedBoolean);
   }
 }
 

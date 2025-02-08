@@ -4,7 +4,7 @@ const https = require("https");
 const promptHelper = require("./helpers/prompt-helper");
 
 class WebScrapeHandler {
-  jina_endpoint = "https://r.jina.ai//";
+  jina_endpoint = "https://r.jina.ai/";
   proxy = "http://31.220.15.234:80";
   options = {
     hostname: "r.jina.ai",
@@ -16,37 +16,31 @@ class WebScrapeHandler {
   };
   markdown_content = "";
   AIClient;
-  constructor(target_URL, api_key, model) {
-    this.target_URL = target_URL;
+  constructor(api_key) {
     this.api_key = api_key;
-    this.model = model;
-    this.AIClient = new AIHandler(this.api_key, this.model);
+    this.AIClient = new AIHandler(this.api_key);
     this.AIClient.verifyModel();
   }
 
+  setURL(URL) {
+    this.target_URL = URL;
+  }
+
   async convertToMarkdown() {
-    this.options.path = `/${this.target_URL}`;
+    this.options.path = `${this.jina_endpoint}/${this.target_URL}`;
+    console.log("target", this.target_URL);
     //promise on resolve returns the data we need bst way to perform this action
     //aios a bit tricky
-    return new Promise((resolve, reject) => {
-      https
-        .get(this.options, (res) => {
-          let data = "";
-
-          res.on("data", (chunk) => {
-            data += chunk;
-          });
-
-          res.on("end", () => {
-            this.markdown_content = data;
-
-            resolve(data); // Return data when request is done
-          });
-        })
-        .on("error", (err) => {
-          reject(err); // Return error if request fails
-        });
-    });
+    try {
+      const response = await axios.get(this.options.path, {
+        headers: this.options.headers,
+      });
+      this.markdown_content = response.data; // Store the fetched content
+      return response.data; // Return the response data
+    } catch (error) {
+      console.error("Error fetching markdown:", error);
+      throw error; // Ensure errors are properly propagated
+    }
 
     // markdown alows us to process elements easier with less tokens being used
     // the ai can decide whats important and whats notj
