@@ -25,13 +25,14 @@ async function test() {
 //the call to prompt the ai to webscrape a website
 
 //test key will get deleted soon: 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
-test_run();
-function test_run() {
-  console.log("Welcome to webranger");
-  readline.question("Enter Prompt: ", (prompt) => {
-    client.providePrompt(prompt);
+client.providePrompt("https://kolscan.io/Leaderboard");
+// test_run();
+// function test_run() {
+//   console.log("Welcome to webranger");
+//   readline.question("Enter Prompt: ", (prompt) => {
+//     client.providePrompt(prompt);
 
-    readline.close();
-  });
-}
+//     readline.close();
+//   });
+// }
 //"Get me the top 10 traders from the leaderboard also get there solana wallet address from https://kolscan.io/leaderboard"

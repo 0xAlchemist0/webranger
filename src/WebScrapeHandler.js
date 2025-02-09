@@ -89,6 +89,22 @@ class WebScrapeHandler {
     return false;
   }
 
+  //navigation of websites and extracting contents works properly next step is to convert to markdown and analyzing content
+  async navigatePages(baseURL, websiteRoutes) {
+    const extractedPages = [];
+    console.log(websiteRoutes);
+    for (let i = 0; i < websiteRoutes.length; i++) {
+      const HTMLContent = await this.getHTMLContent(baseURL + websiteRoutes[i]);
+      extractedPages.push(extractedPages);
+    }
+  }
+
+  getbaseURL(targetURL) {
+    const parseURL = new URL(targetURL);
+    console.log(parseURL.protocol + "//" + parseURL.hostname);
+    return parseURL.protocol + "//" + parseURL.hostname;
+  }
+
   async getHTMLContent(URL) {
     console.log(URL);
     const browser = await puppeteer.launch({ headless: true });

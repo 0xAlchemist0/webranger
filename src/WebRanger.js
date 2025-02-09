@@ -35,12 +35,17 @@ class WebRanger {
     const initialHTMLContent = await this.webscrapingClient.getHTMLContent(
       URL_Extrcted
     );
-    console.log(initialHTMLContent);
-    const extraPages = this.webscrapingClient.extractHrefs(
+    const websiteRoutes = await this.webscrapingClient.extractHrefs(
       initialHTMLContent,
       URL_Extrcted
     );
-    console.log(extraPages);
+    const baseURL = this.webscrapingClient.getbaseURL(URL_Extrcted);
+    console.log("base URL: ", baseURL);
+
+    const pageContents = await this.webscrapingClient.navigatePages(
+      baseURL,
+      websiteRoutes
+    );
     //uncomment below when done adding getting other page route contents
     // const markdown = await this.webscrapingClient.convertToMarkdown();
     // await this.analyzeMarkdown(prompt, markdown);
