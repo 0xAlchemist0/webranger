@@ -3,7 +3,7 @@ function extractURLPrompt(prompt) {
 }
 
 function validateMarkdownPrompt(prompt, markdown) {
-  return `You are an expert web scraper. Given the following content: ${markdown}, thoroughly analyze it and determine whether it contains all the necessary information to fully satisfy the user's request: ${prompt}. Respond strictly with either 'true' or 'false', and provide no additional text or explanation.`;
+  return `You are an expert web scraper.  Given the following html element text: ${markdown}, thoroughly analyze it to determine if it contains all the information necessary to completely fulfill the user's request: ${prompt}. Respond with only "true" or "false", and provide no further explanation.`;
 }
 
 function convertToJSONPrompt(prompt, data) {

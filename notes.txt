@@ -1,2 +1,7 @@
 //make code less bulky
 //fix variable names to something apporiate programming wise
+
+#targets for 02/11
+clean up code make it efficient and less bulky 
+pre analyze detecting popups or cloudflare block 
+integrate frameowkr on a frontend website

@@ -10,7 +10,7 @@ class WebScrapeHandler {
     this.api_key = api_key;
     this.AIClient = new AIHandler(this.api_key);
     this.AIClient.verifyModel();
-    this.markdownService = new TurnDownService();
+    this.markdownService = new TurnDownService({ option: "setwxt" });
   }
 
   setURL(URL) {
@@ -37,9 +37,11 @@ class WebScrapeHandler {
   }
 
   async convertToMarkdown(HTML) {
-    const markdown = this.markdownService.turndown(HTML);
-    console.log(typeof markdown);
-    return markdown;
+    return new Promise(async (resolve, reject) => {
+      const markdown = this.markdownService.turndown(HTML);
+
+      resolve(markdown);
+    });
 
     // markdown alows us to process elements easier with less tokens being used
     // the ai can decide whats important and whats notj
@@ -48,7 +50,6 @@ class WebScrapeHandler {
   async bulkMarkdownParse(contents) {
     const count = 2;
     let markdowns = [];
-    console.log(contents.length);
     for (let i = 0; i < contents.length; i++) {
       const currentMarkdown = this.convertToMarkdown(contents[i]);
       markdowns.push(currentMarkdown);
@@ -62,12 +63,8 @@ class WebScrapeHandler {
   async navigatePages(baseURL, websiteRoutes) {
     let extractedPages = [];
     for (let i = 0; i < websiteRoutes.length; i++) {
-      setTimeout(async () => {
-        const HTMLContent = await this.getHTMLContent(
-          baseURL + websiteRoutes[i]
-        );
-        extractedPages.push(HTMLContent);
-      }, ["5 seconds"]);
+      const HTMLContent = await this.getHTMLContent(baseURL + websiteRoutes[i]);
+      extractedPages.push(HTMLContent);
     }
     return extractedPages;
   }

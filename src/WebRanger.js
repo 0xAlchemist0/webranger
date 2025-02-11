@@ -2,7 +2,7 @@ const AIHandler = require("./APIHandler");
 const promptHelper = require("./helpers/prompt-helper");
 const WebScrapeHandler = require("./WebScrapeHandler");
 const parsers = require("./helpers/parsers");
-
+const colors = require("colors");
 class WebRanger {
   AIClient;
   webscrapingClient;
@@ -21,10 +21,10 @@ class WebRanger {
     if (!isVerified) {
       throw Error("Rate limit possibly reached");
     } else {
-      console.log("User is valid proceed with action!");
+      console.log("User is valid proceed with action! ✅".green);
 
       const answer = await this.handlePrompt(prompt);
-      console.log(answer);
+      console.log(JSON.parse(answer));
       return answer;
     }
   }
@@ -34,6 +34,7 @@ class WebRanger {
       promptHelper.extractURLPrompt(prompt)
     );
     this.webscrapingClient.setURL(URL_Extrcted);
+    const cleanedPrompt = prompt.replace(/(https?:\/\/[^\s]+)/g, "");
 
     //////////////////////////
     //before we analyze the markdown we have to find a way to get all elements and get all elements
@@ -66,33 +67,53 @@ class WebRanger {
 
   async evaluateNavigationNeed(prompt, baseURL, websiteRoutes) {
     //false if navigation is not needed
-    const pageContents = await this.webscrapingClient.navigatePages(
-      baseURL,
-      websiteRoutes
-    );
+    // const pageContents = await this.webscrapingClient.navigatePages(
+    //   baseURL,
+    //   websiteRoutes
+    // );
 
-    const bulkMarkdowns = await this.webscrapingClient.bulkMarkdownParse(
-      pageContents
-    );
-    const answer = this.bulkMarkdownAnalysis(prompt, bulkMarkdowns);
+    const answer = this.bulkMarkdownAnalysis(prompt, baseURL, websiteRoutes);
+    return answer;
   }
 
-  async bulkMarkdownAnalysis(prompt, markdownBulk) {
+  async bulkMarkdownAnalysis(prompt, baseURL, websiteRoutes) {
+    console.log("Analyzing surrounding pages 🟡".yellow);
+    let finalAnswer = null;
+
     //anallyze markdown given the users intial prompt
     //when data that fufills prompt ios found we end the for loop and return the JSON
-    for (let i = 0; i < markdownBulk.length; i++) {
+    for (let i = 0; i < websiteRoutes.length; i++) {
+      const currentHTML = await this.webscrapingClient.getHTMLContent(
+        baseURL + websiteRoutes[i]
+      );
+      const currentMarkdown = await this.webscrapingClient.convertToMarkdown(
+        currentHTML
+      );
       const isPromptFufilled = await this.analyzeMarkdown(
         prompt,
-        markdownBulk[i]
+        currentMarkdown
       );
-      console.log(isPromptFufilled);
+
       if (isPromptFufilled) {
-        const JSONAnswer = await this.AIClient.provideGeminiPrompt(
-          promptHelper.convertToJSONPrompt(prompt, markdownBulk[i])
+        console.log(
+          `fufilled successfully at ${baseURL + websiteRoutes[i]} ✅`.green
         );
-        return JSONAnswer;
+        try {
+          finalAnswer = await this.AIClient.provideGeminiPrompt(
+            promptHelper.convertToJSONPrompt(prompt, currentMarkdown)
+          );
+
+          return finalAnswer
+            .replace("json", "")
+            .trim()
+            .replace(/```/g, "")
+            .trim();
+        } catch (error) {
+          return "Error on asking";
+        }
       }
     }
+    return "Not enough data was found to fufill your prompt please check your prompt or url provided";
   }
 
   async analyzeMarkdown(prompt, markdown) {
