@@ -1,68 +1,22 @@
-const axios = require("axios");
 const AIHandler = require("./APIHandler");
-const promptHelper = require("./helpers/prompt-helper");
-const { HttpsProxyAgent } = require("https-proxy-agent");
-const availableProxies = require("./helpers/proxies-available");
-const cheerio = require("cheerio");
 const puppeteer = require("puppeteer");
+const TurnDownService = require("turndown");
+const cheerio = require("cheerio");
 class WebScrapeHandler {
-  proxyUsed;
-  proxyAgent;
-  proxy = "http://31.220.15.234:80";
-  options = {
-    hostname: "https://r.jina.ai/",
-    path: "",
-    headers: {
-      Authorization:
-        "Bearer jina_d6916363ce474536919ecf37479e4fc6A5iHd-OcVy_KkC2gLAz7wYjO0ozh",
-    },
-  };
   markdown_content = "";
   AIClient;
+  markdownService;
   constructor(api_key) {
     this.api_key = api_key;
     this.AIClient = new AIHandler(this.api_key);
     this.AIClient.verifyModel();
-    this.setSessionProxy();
-  }
-
-  setSessionProxy() {
-    const randomIndex = Math.random() * (3 - 0) + 0;
-    this.proxyUsed = availableProxies[randomIndex.toFixed()];
-    console.log(this.proxyUsed);
+    this.markdownService = new TurnDownService();
   }
 
   setURL(URL) {
     this.target_URL = URL;
   }
 
-  async convertToMarkdown() {
-    console.log("random: ", Number(Math.random() * (3 - 0) + 0).toFixed());
-    console.log("proxy:", this.proxyUsed);
-    console.log(
-      "URL FOUND: ",
-      this.target_URL,
-      " JINA API: ",
-      this.options.hostname
-    );
-    this.options.path = `${this.options.hostname}${this.target_URL}`;
-    //promise on resolve returns the data we need bst way to perform this action
-    //aios a bit tricky
-    try {
-      const response = await axios.get(this.options.path, {
-        headers: this.options.headers,
-      });
-      console.trace(response.data);
-      this.markdown_content = response.data; // Store the fetched content
-      return response.data; // Return the response data
-    } catch (error) {
-      console.error("Error fetching markdown:", error);
-      // Ensure errors are properly propagated
-    }
-
-    // markdown alows us to process elements easier with less tokens being used
-    // the ai can decide whats important and whats notj
-  }
   //here we validate if the markdown provided from the page fufills the user promopt
   //if it does not we ove on to another function to try to get the markdown of other paths on the website
   async getPageContent(foundHrefs) {
@@ -82,6 +36,42 @@ class WebScrapeHandler {
     return linksFound;
   }
 
+  async convertToMarkdown(HTML) {
+    const markdown = this.markdownService.turndown(HTML);
+    console.log(typeof markdown);
+    return markdown;
+
+    // markdown alows us to process elements easier with less tokens being used
+    // the ai can decide whats important and whats notj
+  }
+
+  async bulkMarkdownParse(contents) {
+    const count = 2;
+    let markdowns = [];
+    console.log(contents.length);
+    for (let i = 0; i < contents.length; i++) {
+      const currentMarkdown = this.convertToMarkdown(contents[i]);
+      markdowns.push(currentMarkdown);
+    }
+
+    return markdowns;
+  }
+
+  //navigation of websites and extracting contents works properly next step is to convert to markdown and analyzing content
+  //slow down the function call to make it faster wait 5 seconds to call again
+  async navigatePages(baseURL, websiteRoutes) {
+    let extractedPages = [];
+    for (let i = 0; i < websiteRoutes.length; i++) {
+      setTimeout(async () => {
+        const HTMLContent = await this.getHTMLContent(
+          baseURL + websiteRoutes[i]
+        );
+        extractedPages.push(HTMLContent);
+      }, ["5 seconds"]);
+    }
+    return extractedPages;
+  }
+
   compareURL(URL, href) {
     if (href.includes(URL) || !href.includes("https:")) {
       return true;
@@ -89,20 +79,10 @@ class WebScrapeHandler {
     return false;
   }
 
-  //navigation of websites and extracting contents works properly next step is to convert to markdown and analyzing content
-  async navigatePages(baseURL, websiteRoutes) {
-    const extractedPages = [];
-    console.log(websiteRoutes);
-    for (let i = 0; i < websiteRoutes.length; i++) {
-      const HTMLContent = await this.getHTMLContent(baseURL + websiteRoutes[i]);
-      extractedPages.push(extractedPages);
-    }
-  }
-
   getbaseURL(targetURL) {
     const parseURL = new URL(targetURL);
-    console.log(parseURL.protocol + "//" + parseURL.hostname);
-    return parseURL.protocol + "//" + parseURL.hostname;
+    const { protocol, hostname } = parseURL;
+    return protocol + "//" + hostname;
   }
 
   async getHTMLContent(URL) {
@@ -123,5 +103,7 @@ class WebScrapeHandler {
     return content;
   }
 }
+
+//work on destructring elmeents cleaning code up a bit making it more readable
 
 module.exports = WebScrapeHandler;
